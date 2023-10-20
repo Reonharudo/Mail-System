@@ -1,7 +1,9 @@
 package dslab;
 
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
+import java.util.Properties;
 
 import dslab.mailbox.IMailboxServer;
 import dslab.mailbox.MailboxServer;
@@ -74,7 +76,29 @@ public final class ComponentFactory {
          */
 
         Config config = new Config(componentId);
-        return new TransferServer(componentId, config, in, out);
+
+        Properties props = loadPropertiesFile(componentId);
+        int portNr = Integer.parseInt(props.getProperty("tcp.port"));
+
+        return new TransferServer(componentId, config, in, out, portNr);
     }
 
+    public static Properties loadPropertiesFile(String fileName) {
+        Properties properties = new Properties();
+
+        try {
+            ClassLoader classLoader = ComponentFactory.class.getClassLoader();
+            InputStream inputStream = classLoader.getResourceAsStream(fileName + ".properties");
+
+            if (inputStream != null) {
+                properties.load(inputStream);
+                inputStream.close();
+            } else {
+                System.err.println("Properties file not found: " + fileName);
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    return properties;
+    }
 }
