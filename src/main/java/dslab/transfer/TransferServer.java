@@ -6,9 +6,11 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Properties;
 
@@ -61,41 +63,55 @@ public class TransferServer implements ITransferServer, Runnable {
             String[] parts = line.split(" ");
             String command = parts[0];
 
-            if ("begin".equals(command)) {
-                recipients.clear();
-                sender = null;
-                subject = null;
-                data = null;
-            } else if ("to".equals(command) && parts.length > 1) {
-                // Parse and store recipients
-                String[] recipientArray = parts[1].split(",");
-                for (String recipient : recipientArray) {
-                    recipients.add(recipient);
-                }
-            } else if ("from".equals(command) && parts.length > 1) {
-                // Store sender
-                sender = parts[1];
-            } else if ("subject".equals(command) && parts.length > 1) {
-                // Store subject
-                subject = parts[1];
-            } else if ("data".equals(command) && parts.length > 1) {
-                // Store data
-                data = parts[1];
-            } else if ("send".equals(command)) {
-                // Process the message and send it to the appropriate mailbox server
-                if (sender != null && !recipients.isEmpty() && subject != null && data != null) {
-                    sendMessage(sender, recipients, subject, data);
-                } else {
-                    //generate the error messages
-                    if(sender == null){
-                        clientOut.println("error no sender");
+            switch (command) {
+                case "begin":
+                    recipients.clear();
+                    sender = null;
+                    subject = null;
+                    data = null;
+                    break;
+                case "to":
+                    if (parts.length > 1) {
+                        String[] recipientArray = parts[1].split(",");
+                        recipients.addAll(Arrays.asList(recipientArray));
                     }
-                    clientOut.println("error Incomplete message");
-                }
-            } else if ("quit".equals(command)) {
-                break;
-            } else {
-                clientOut.println("error protocol error");
+                    break;
+                case "from":
+                    if (parts.length > 1) {
+                        sender = parts[1];
+                    }
+                    break;
+                case "subject":
+                    if (parts.length > 1) {
+                        subject = parts[1];
+                    }
+                    break;
+                case "data":
+                    if (parts.length > 1) {
+                        data = parts[1];
+                    }
+                    break;
+                case "send":
+                    if (sender != null && !recipients.isEmpty() && subject != null && data != null) {
+                        sendMessage(sender, recipients, subject, data);
+                    } else {
+                        if (sender == null) {
+                            clientOut.println("error no sender");
+                        }else if(subject == null){
+                            clientOut.println("error no subject");
+                        }else if(data == null){
+                            clientOut.println("error no data");
+                        }else{
+                            clientOut.println("error could not send");
+                        }
+                    }
+                    break;
+                case "quit":
+                    clientOut.println("ok bye");
+                    return;
+                default:
+                    clientOut.println("error protocol error");
+                    return;
             }
 
             clientOut.println("ok");
@@ -109,6 +125,50 @@ public class TransferServer implements ITransferServer, Runnable {
         // You can use the IMailboxServer interface for this purpose.
         // Example:
         System.out.println("TEST");
+        try {
+            // Create a socket to connect to the mailbox server
+            //Socket socket = new Socket("mailbox_server_address", "mailbox_server_port");
+            Socket socket = null;
+            // Create input and output streams for communication
+            BufferedReader in = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+            PrintWriter out = new PrintWriter(socket.getOutputStream(), true);
+
+            // Check if the server is ready
+            String response = in.readLine();
+            if (response.startsWith("ok DMTP")) {
+                // Send DMTP commands to the mailbox server
+                out.println("begin");
+                out.println("from " + sender);
+
+                // Set recipients
+                StringBuilder recipientsCommand = new StringBuilder("to ");
+                for (String recipient : recipients) {
+                    recipientsCommand.append(recipient).append(",");
+                }
+                out.println(recipientsCommand.toString());
+
+                out.println("subject " + subject);
+                out.println("data " + data);
+                out.println("send");
+                out.println("quit");
+
+                // Read server responses
+                while ((response = in.readLine()) != null) {
+                    if (response.startsWith("ok")) {
+                        System.out.println("Message sent successfully.");
+                    } else if (response.startsWith("error")) {
+                        System.out.println("Error: " + response.substring(6));
+                    }
+                }
+
+                // Close the socket
+                socket.close();
+            } else {
+                System.out.println("Mailbox server is not ready.");
+            }
+        } catch (IOException e) {
+            System.err.println("Error sending the message: " + e.getMessage());
+        }
     }
 
     @Override
