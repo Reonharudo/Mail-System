@@ -1,20 +1,17 @@
 package dslab.mailbox;
 
-import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import dslab.ComponentFactory;
+import dslab.protocollhandler.DMAPConnectionHandler;
 import dslab.util.Config;
+import dslab.util.Email;
 
 public class MailboxServer implements IMailboxServer, Runnable {
 
@@ -26,6 +23,9 @@ public class MailboxServer implements IMailboxServer, Runnable {
     private ServerSocket dmtpServerSocket;
     private ServerSocket dmapServerSocket;
     private ExecutorService executorService;
+
+    private List<Email> storedEmails;
+
 
     /**
      * Creates a new server instance.
@@ -45,15 +45,29 @@ public class MailboxServer implements IMailboxServer, Runnable {
         int dmapPort = config.getInt("dmap.tcp.port");
         int dmtpPort = config.getInt("dmtp.tcp.port");
 
+        String domain = config.getString("domain");
+
         try {
             dmapServerSocket = new ServerSocket(dmapPort);
-            dmtpServerSocket = new ServerSocket(dmtpPort);
+            dmtpServerSocket = new ServerSocket(dmtpPort, 2);
 
             executorService = Executors.newCachedThreadPool();
         } catch (IOException e) {
             e.printStackTrace();
             shutdown();
         }
+    }
+
+    public synchronized void storeEmail(Email email){
+        this.storedEmails.add(email);
+    }
+
+    public synchronized  void removeEmail(Email email){
+        this.storedEmails.remove(email);
+    }
+
+    public synchronized List<Email> getStoredEmails(){
+        return this.storedEmails;
     }
 
     @Override
@@ -91,9 +105,9 @@ public class MailboxServer implements IMailboxServer, Runnable {
                 try {
                     Socket dmtpSocket = dmtpServerSocket.accept();
                     executorService.execute(
-                        new DMAPConnectionHandler(
+                        new DMTPConnectionHandler(
                             dmtpSocket,
-                            new Config(config.getString("users.config"))
+                            this
                         )
                     );
                 } catch (IOException e) {

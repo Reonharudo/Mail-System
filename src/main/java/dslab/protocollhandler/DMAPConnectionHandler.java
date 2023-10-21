@@ -1,6 +1,7 @@
-package dslab.mailbox;
+package dslab.protocollhandler;
 
 import dslab.ComponentFactory;
+import dslab.mailbox.IMailboxServer;
 import dslab.util.Config;
 
 import java.io.BufferedReader;
