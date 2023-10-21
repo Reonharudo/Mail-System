@@ -71,34 +71,8 @@ public final class ComponentFactory {
      */
     public static ITransferServer createTransferServer(String componentId, InputStream in, PrintStream out)
             throws Exception {
-        /*
-         * TODO: Here you can modify the code (if necessary) to instantiate your components
-         */
-
         Config config = new Config(componentId);
 
-        Properties props = loadPropertiesFile(componentId);
-        int portNr = Integer.parseInt(props.getProperty("tcp.port"));
-
-        return new TransferServer(componentId, config, in, out, portNr);
-    }
-
-    public static Properties loadPropertiesFile(String fileName) {
-        Properties properties = new Properties();
-
-        try {
-            ClassLoader classLoader = ComponentFactory.class.getClassLoader();
-            InputStream inputStream = classLoader.getResourceAsStream(fileName + ".properties");
-
-            if (inputStream != null) {
-                properties.load(inputStream);
-                inputStream.close();
-            } else {
-                System.err.println("Properties file not found: " + fileName);
-            }
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-    return properties;
+        return new TransferServer(componentId, config, in, out);
     }
 }

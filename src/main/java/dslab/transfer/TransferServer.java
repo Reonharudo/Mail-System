@@ -23,22 +23,25 @@ public class TransferServer implements ITransferServer, Runnable {
     private final Config config;
     private final InputStream in;
     private final PrintStream out;
-    private final int port;
     private ServerSocket serverSocket;
 
-    public TransferServer(String componentId, Config config, InputStream in, PrintStream out, int port) {
+    public TransferServer(String componentId, Config config, InputStream in, PrintStream out) {
         this.componentId = componentId;
         this.config = config;
         this.in = in;
         this.out = out;
-        this.port = port;
+
+        final int portNr = config.getInt("tcp.port");
+        try{
+            serverSocket = new ServerSocket(portNr, 2);
+        }  catch (IOException e) {
+        e.printStackTrace();
+    }
     }
 
     @Override
     public void run() {
         try {
-            serverSocket = new ServerSocket(port,2);
-
             while (true) {
                 Socket clientSocket = serverSocket.accept();
                 handleClient(clientSocket);
