@@ -33,14 +33,14 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
   }
 
   private String convertToDMTPConformFormat(List<String> values){
-    String instruction = "";
+    StringBuilder instruction = new StringBuilder();
     for(int i = 0; i < values.size(); i++){
-      instruction += values.get(i);
+      instruction.append(values.get(i));
       if(i != values.size() -2 ){
-        instruction += ",";
+        instruction.append(",");
       }
     }
-    return  instruction;
+    return instruction.toString();
   }
 
   private void sendToRecipient(String sender, String recipient, List<String> allRecipients, String subject, String data) {
