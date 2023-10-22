@@ -105,6 +105,19 @@ public class DMAPConnectionHandler implements Runnable{
   }
 
   /* Utils */
+  protected String convertToDMAPConformFormat(List<String> values){
+    System.out.println("convertToDMAPConformFormat()");
+
+    StringBuilder instruction = new StringBuilder();
+    for(int i = 0; i < values.size(); i++){
+      instruction.append(values.get(i));
+      if(i != values.size() -2 ){
+        instruction.append(",");
+      }
+    }
+    return instruction.toString();
+  }
+
 
   private boolean checkParamsLengthOrOutError(List<String> params, int expectedLength){
     if(params.size() != expectedLength){
@@ -145,12 +158,15 @@ public class DMAPConnectionHandler implements Runnable{
   }
 
   private void handleList() {
+    System.out.println("handleList()");
     // Implement logic to list all emails of the current user in the format <message-id> <sender> <subject>
     // You need to retrieve the messages associated with the current user and send them as a response
     Map<Integer, Email> emails = mailboxServer.getStoredEmails();
 
     for(int emailId: emails.keySet()){
       Email email = emails.get(emailId);
+      System.out.println("Check "+email);
+
       if(isCurrentLoggedInUserPartOfRecipients(email.getRecipients())){
         String emailRepresentation = emailId +" "+email.getSender()+" "+email.getSubject();
         clientOut.println(emailRepresentation);
@@ -159,6 +175,8 @@ public class DMAPConnectionHandler implements Runnable{
   }
 
   private boolean isCurrentLoggedInUserPartOfRecipients(List<String> recipients){
+    System.out.println("isCurrentLoggedInUserPartOfRecipients() "+loggedInUsername+"###"+recipients);
+
     for(String recipient : recipients){
       if(recipient.contains(loggedInUsername)){
         return true;
@@ -177,7 +195,10 @@ public class DMAPConnectionHandler implements Runnable{
       //check if mail exists
       if(email != null){
         if(isCurrentLoggedInUserPartOfRecipients(email.getRecipients())){
-          clientOut.println(email.getMessageBody());
+          clientOut.println("from "+email.getSender());
+          clientOut.println("to "+convertToDMAPConformFormat(email.getRecipients()));
+          clientOut.println("subject "+email.getSubject());
+          clientOut.println("data "+email.getMessageBody());
         }else{
           clientOut.println("error no access to this message");
         }

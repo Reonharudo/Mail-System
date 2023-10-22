@@ -44,6 +44,19 @@ public abstract class AbstractDMTPConnectionHandler implements Runnable{
     }
   }
 
+  protected String convertToDMTPConformFormat(List<String> values){
+    System.out.println("convertToDMTPConformFormat()");
+
+    StringBuilder instruction = new StringBuilder();
+    for(int i = 0; i < values.size(); i++){
+      instruction.append(values.get(i));
+      if(i != values.size() -2 ){
+        instruction.append(",");
+      }
+    }
+    return instruction.toString();
+  }
+
   public void handleDMTPInteractions() throws IOException{
     String line;
     while ((line = reader.readLine()) != null) {
