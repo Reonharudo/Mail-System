@@ -1,8 +1,8 @@
 package dslab.mailbox;
 
 import dslab.ComponentFactory;
-import dslab.mailbox.IMailboxServer;
 import dslab.util.Config;
+import dslab.util.Email;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -11,6 +11,7 @@ import java.io.PrintStream;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 public class DMAPConnectionHandler implements Runnable{
   private final Socket socket;
@@ -20,9 +21,12 @@ public class DMAPConnectionHandler implements Runnable{
   private String loggedInUsername;
   private final Config userConfig;
 
-  public DMAPConnectionHandler(Socket socket, Config userConfig) throws IOException {
+  private final MailboxServer mailboxServer;
+
+  public DMAPConnectionHandler(Socket socket, Config userConfig, MailboxServer mailboxServer) throws IOException {
     this.socket = socket;
     this.userConfig = userConfig;
+    this.mailboxServer = mailboxServer;
 
     reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     clientOut = new PrintStream(socket.getOutputStream());
@@ -61,19 +65,35 @@ public class DMAPConnectionHandler implements Runnable{
   public void invokeCommandHandler(String command, List<String> params) throws IOException{
     switch (command) {
       case "login":
-        handleLogin(params);
+        if(checkParamsLengthOrOutError(params, 2)){
+          handleLogin(params);
+        }
         break;
       case "list":
-        handleList();
+        if(checkParamsLengthOrOutError(params, 0)){
+          if(checkIfLoggedInOrOutError()){
+            handleList();
+          }
+        }
         break;
       case "show":
-        //handleShow();
+        if(checkParamsLengthOrOutError(params, 1)){
+          if(checkIfLoggedInOrOutError()){
+            handleShow(params.get(0));
+          }
+        }
         break;
       case "delete":
-       // handleDelete();
+        if(checkParamsLengthOrOutError(params, 1)){
+          if(checkIfLoggedInOrOutError()){
+            handleDelete(params.get(0));
+          }
+        }
         break;
       case "logout":
-        handleLogout();
+        if(checkParamsLengthOrOutError(params, 0)){
+          handleLogout();
+        }
         break;
       case "quit":
         handleQuit();
@@ -82,12 +102,30 @@ public class DMAPConnectionHandler implements Runnable{
         clientOut.println("error unknown command");
         socket.close();
     }
-
   }
 
-  // DMAP Command Handlers
+  /* Utils */
+
+  private boolean checkParamsLengthOrOutError(List<String> params, int expectedLength){
+    if(params.size() != expectedLength){
+      clientOut.println("error parameters should have the length of "+expectedLength);
+      return false;
+    }
+    return true;
+  }
+
+  private boolean checkIfLoggedInOrOutError(){
+   if(loggedInUsername == null){
+     clientOut.println("error not logged in");
+     return false;
+   }
+   return true;
+  }
+
+  /* DMAP Command Handlers */
+
   private void handleLogin(List<String> params) {
-    if(params.size() == 2){
+    if(loggedInUsername == null){
       String username = params.get(0);
       int password = Integer.parseInt(params.get(1));
 
@@ -99,34 +137,93 @@ public class DMAPConnectionHandler implements Runnable{
       else{
         clientOut.println("error wrong credentials");
       }
-
-    }else{
-      clientOut.println("error parameters of login should be 2");
+    }else {
+      clientOut.println("error already logged in");
     }
   }
 
   private void handleList() {
     // Implement logic to list all emails of the current user in the format <message-id> <sender> <subject>
     // You need to retrieve the messages associated with the current user and send them as a response
+    Map<Integer, Email> emails = mailboxServer.getStoredEmails();
+
+    for(int emailId: emails.keySet()){
+      Email email = emails.get(emailId);
+      if(isCurrentLoggedInUserPartOfRecipients(email.getRecipients())){
+        String emailRepresentation = emailId +" "+email.getSender()+" "+email.getSubject();
+        clientOut.println(emailRepresentation);
+      }
+    }
   }
 
-  private void handleShow(String line) {
+  private boolean isCurrentLoggedInUserPartOfRecipients(List<String> recipients){
+    for(String recipient : recipients){
+      if(recipient.contains(loggedInUsername)){
+        return true;
+      }
+    }
+    return false;
+  }
+
+  private void handleShow(String messageIdParam) {
     // Implement logic to show the message with the given ID
     // You should retrieve the message content and send it as a response
+    try{
+      int messageId = Integer.parseInt(messageIdParam);
+      Email email = mailboxServer.getStoredEmails().get(messageId);
+
+      //check if mail exists
+      if(email != null){
+        if(isCurrentLoggedInUserPartOfRecipients(email.getRecipients())){
+          clientOut.println(email.getMessageBody());
+        }else{
+          clientOut.println("error no access to this message");
+        }
+      }else{
+        clientOut.println("error no email with id="+messageIdParam);
+      }
+    }catch (NumberFormatException e){
+      clientOut.println("error no number");
+    }
   }
 
-  private void handleDelete(String line) {
+  private void handleDelete(String messageIdParam) {
     // Implement logic to delete the message with the given ID
     // You should remove the message from the user's mailbox
+    try{
+      int messageId = Integer.parseInt(messageIdParam);
+      Email email = mailboxServer.getStoredEmails().get(messageId);
+
+      //check if mail exists
+      if(email != null){
+        if(isCurrentLoggedInUserPartOfRecipients(email.getRecipients())) {
+          mailboxServer.removeEmail(messageId);
+          clientOut.println("ok");
+        }else{
+          clientOut.println("error no access to delete");
+        }
+      }else{
+        clientOut.println("error mail does not exist");
+      }
+
+    }catch (NumberFormatException e){
+      clientOut.println("error not a number");
+    }
   }
 
   private void handleLogout() {
     // Implement logout logic
     // You can clear the current user's context and allow them to log in again
+    loggedInUsername = null;
   }
 
   private void handleQuit() {
     // Handle the "quit" command by closing the socket connection
+    try {
+      socket.close();
+    } catch (IOException e) {
+      e.printStackTrace();
+    }
   }
 
   public static void main(String[] args) throws Exception {

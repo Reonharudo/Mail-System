@@ -1,18 +1,12 @@
 package dslab.transfer;
 
 import java.io.BufferedReader;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Properties;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -21,17 +15,13 @@ import dslab.util.Config;
 
 public class TransferServer implements ITransferServer, Runnable {
     private volatile boolean isShuttingDown = false;
-    private final String componentId;
-    private final Config config;
     private final InputStream in;
     private final PrintStream out;
     private ServerSocket serverSocket;
-
-    private ExecutorService executorService;
+    private final ExecutorService executorService;
 
     public TransferServer(String componentId, Config config, InputStream in, PrintStream out) {
-        this.componentId = componentId;
-        this.config = config;
+        System.out.println("init "+componentId);
         this.in = in;
         this.out = out;
 
@@ -89,7 +79,7 @@ public class TransferServer implements ITransferServer, Runnable {
     public void shutdown() {
         isShuttingDown = true;
         try {
-            if (serverSocket != null) {
+            if (serverSocket != null && !serverSocket.isClosed()) {
                 serverSocket.close();
             }
         } catch (IOException e) {

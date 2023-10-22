@@ -101,7 +101,9 @@ public abstract class AbstractDMTPConnectionHandler implements Runnable{
       //send response
       if (command.equals("to")) {
         clientOut.println("ok " + recipients.size());
-      } else {
+      } else if(command.equals("send")){
+        //nothing to do here, because the response from that command should come from sendMessage()
+      }else {
         clientOut.println("ok");
       }
     }

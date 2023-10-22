@@ -1,29 +1,34 @@
 package dslab.mailbox;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
+import dslab.ComponentFactory;
+import dslab.transfer.ITransferServer;
 import dslab.util.Config;
 import dslab.util.Email;
 
 public class MailboxServer implements IMailboxServer, Runnable {
-
-    private String componentId;
-    private Config config;
-    private InputStream in;
-    private PrintStream out;
+    private volatile boolean isShuttingDown = false;
+    private final Config config;
+    private final InputStream in;
+    private final PrintStream out;
 
     private ServerSocket dmtpServerSocket;
     private ServerSocket dmapServerSocket;
     private ExecutorService executorService;
 
-    private List<Email> storedEmails;
+    private final Map<Integer, Email> storedEmails = new HashMap<>();
 
 
     /**
@@ -35,7 +40,7 @@ public class MailboxServer implements IMailboxServer, Runnable {
      * @param out the output stream to write console output to
      */
     public MailboxServer(String componentId, Config config, InputStream in, PrintStream out) {
-        this.componentId = componentId;
+        System.out.println("init "+componentId);
         this.config = config;
         this.in = in;
         this.out = out;
@@ -43,8 +48,6 @@ public class MailboxServer implements IMailboxServer, Runnable {
         // Initialize the server socket and executor service here
         int dmapPort = config.getInt("dmap.tcp.port");
         int dmtpPort = config.getInt("dmtp.tcp.port");
-
-        String domain = config.getString("domain");
 
         try {
             dmapServerSocket = new ServerSocket(dmapPort);
@@ -58,19 +61,23 @@ public class MailboxServer implements IMailboxServer, Runnable {
     }
 
     public synchronized void storeEmail(Email email){
-        this.storedEmails.add(email);
+        storedEmails.put(storedEmails.size() + 1, email);
     }
 
-    public synchronized  void removeEmail(Email email){
-        this.storedEmails.remove(email);
+    public synchronized void removeEmail(int emailId){
+        this.storedEmails.remove(emailId);
     }
 
-    public synchronized List<Email> getStoredEmails(){
+    public synchronized Map<Integer, Email> getStoredEmails(){
         return this.storedEmails;
     }
 
     @Override
     public void run() {
+        //Create Thread to listen for ShellCommands
+        Thread shellCommandListener = new Thread(this::listenForShellCommands);
+        shellCommandListener.start();
+
         //Create separate Threads for DMTP and DMAP
         Thread acceptDMTPSocketThread = generateDMTPSocketListener();
         Thread acceptDMAPSocketThread = generateDMAPSocketListener();
@@ -82,13 +89,15 @@ public class MailboxServer implements IMailboxServer, Runnable {
 
     public Thread generateDMAPSocketListener(){
         return new Thread(() -> {
-            while (true) {
+            //instead of while(true) to let the JVM close it gracefully
+            while (!isShuttingDown) {
                 try {
                     Socket dmapSocket = dmapServerSocket.accept();
                     executorService.execute(
                         new DMAPConnectionHandler(
                             dmapSocket,
-                            new Config(config.getString("users.config"))
+                            new Config(config.getString("users.config")),
+                            this
                         )
                     );
                 } catch (IOException e) {
@@ -97,10 +106,29 @@ public class MailboxServer implements IMailboxServer, Runnable {
             }
         });
     }
+    private void listenForShellCommands(){
+        BufferedReader consoleReader = new BufferedReader(new InputStreamReader(in));
+        try {
+            //when while loop is exited, the JVM will automatically close the thread from where it runs
+            while (!isShuttingDown) {
+                String input = consoleReader.readLine();
+                switch(input){
+                    case "shutdown":
+                        shutdown();
+                        break;
+                    default:
+                        out.println("error unknown command");
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
     public Thread generateDMTPSocketListener(){
         return new Thread(() -> {
-            while (true) {
+            //instead of while(true) to let the JVM close it gracefully
+            while (!isShuttingDown) {
                 try {
                     Socket dmtpSocket = dmtpServerSocket.accept();
                     executorService.execute(
@@ -118,6 +146,7 @@ public class MailboxServer implements IMailboxServer, Runnable {
 
     @Override
     public void shutdown() {
+        isShuttingDown = true;
         try {
             if (dmtpServerSocket != null && !dmtpServerSocket.isClosed()) {
                 dmtpServerSocket.close();
@@ -129,8 +158,11 @@ public class MailboxServer implements IMailboxServer, Runnable {
             e.printStackTrace();
         }
 
-        if (executorService != null) {
-            executorService.shutdownNow();
-        }
+        executorService.shutdownNow();
+    }
+
+    public static void main(String[] args) throws Exception {
+        IMailboxServer server = ComponentFactory.createMailboxServer(args[0], System.in, System.out);
+        server.run();
     }
 }

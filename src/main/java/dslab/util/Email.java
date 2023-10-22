@@ -1,6 +1,7 @@
 package dslab.util;
 
 import java.util.List;
+import java.util.Objects;
 
 public class Email {
   private final String sender;
@@ -29,5 +30,28 @@ public class Email {
 
   public String getMessageBody() {
     return messageBody;
+  }
+
+  @Override
+  public boolean equals(Object o) {
+    if (this == o) {
+      return true;
+    }
+    if (o == null || getClass() != o.getClass()) {
+      return false;
+    }
+    Email email = (Email) o;
+    return Objects.equals(sender, email.sender) && Objects.equals(recipients, email.recipients) &&
+        Objects.equals(subject, email.subject) && Objects.equals(messageBody, email.messageBody);
+  }
+
+  @Override
+  public int hashCode() {
+    return Objects.hash(sender, recipients, subject, messageBody);
+  }
+
+  @Override
+  public String toString() {
+    return hashCode()+" "+sender+" "+subject;
   }
 }
