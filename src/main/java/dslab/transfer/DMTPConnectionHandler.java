@@ -33,6 +33,8 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
 
   private void sendToRecipient(String sender, String recipient, String subject, String data) {
     DomainLookupData lookupData = inferDomainLookup(recipient);
+    System.out.println(sender+" "+recipient+" "+subject+" "+data);
+    System.out.println(lookupData.ipAddress+" OOOOOOOOO"+lookupData.portNr);
     try (Socket socketToMailServer = new Socket(lookupData.ipAddress, lookupData.portNr);
          BufferedReader in = new BufferedReader(new InputStreamReader(socketToMailServer.getInputStream()));
          PrintWriter out = new PrintWriter(socketToMailServer.getOutputStream(), true)) {

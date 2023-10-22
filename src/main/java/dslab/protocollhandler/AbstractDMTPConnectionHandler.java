@@ -27,7 +27,7 @@ public abstract class AbstractDMTPConnectionHandler implements Runnable{
     clientOut = new PrintStream(socket.getOutputStream());
   }
 
-  protected abstract void sendMessage(String sender, List<String> recipients, String subject, String data) throws IOException;
+  protected abstract void sendMessage(String sender, List<String> recipients, String subject, String data);
 
   @Override
   public void run() {
@@ -36,8 +36,11 @@ public abstract class AbstractDMTPConnectionHandler implements Runnable{
 
       handleDMTPInteractions();
     } catch (IOException e) {
-      clientOut.println("error internal send error");
-      e.printStackTrace();
+      if(e.getMessage().equals("Socket closed")){
+        System.out.println("quit was invoked");
+      }else{
+        e.printStackTrace();
+      }
     }
   }
 
@@ -92,10 +95,10 @@ public abstract class AbstractDMTPConnectionHandler implements Runnable{
           break;
         case "quit":
           clientOut.println("ok bye");
-          return;
+          socket.close();
         default:
           clientOut.println("error protocol error");
-          return;
+          socket.close();
       }
 
       //send response
@@ -107,7 +110,5 @@ public abstract class AbstractDMTPConnectionHandler implements Runnable{
         clientOut.println("ok");
       }
     }
-
-    socket.close();
   }
 }

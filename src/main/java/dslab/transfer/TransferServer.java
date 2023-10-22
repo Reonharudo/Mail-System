@@ -31,7 +31,7 @@ public class TransferServer implements ITransferServer, Runnable {
         final int portNr = config.getInt("tcp.port");
 
         try{
-            serverSocket = new ServerSocket(portNr, 2);
+            serverSocket = new ServerSocket(portNr);
         }  catch (IOException e) {
             e.printStackTrace();
         }

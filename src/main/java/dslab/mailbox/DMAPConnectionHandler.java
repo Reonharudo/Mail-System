@@ -12,6 +12,7 @@ import java.net.Socket;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.MissingResourceException;
 
 public class DMAPConnectionHandler implements Runnable{
   private final Socket socket;
@@ -39,7 +40,9 @@ public class DMAPConnectionHandler implements Runnable{
 
       handleDMAPInteractions();
     } catch (IOException e) {
-      e.printStackTrace();
+      if(e.getMessage().equals("Socket closed")){
+        System.out.println("quit was invoked");
+      }
     }
   }
 
@@ -47,12 +50,9 @@ public class DMAPConnectionHandler implements Runnable{
     String line = null;
 
     while ((line = reader.readLine()) != null) {
-      String[] commandParts = line.split(" ", 2);
+      String[] commandParts = line.split(" ");
       List<String> commandPartsAsList = new ArrayList<>(List.of(commandParts));
-
-
       String command = commandParts[0];
-
 
       invokeCommandHandler(
           command,
@@ -126,15 +126,17 @@ public class DMAPConnectionHandler implements Runnable{
 
   private void handleLogin(List<String> params) {
     if(loggedInUsername == null){
-      String username = params.get(0);
-      int password = Integer.parseInt(params.get(1));
+      try{
+        String username = params.get(0);
+        int password = Integer.parseInt(params.get(1));
 
-      //check credentials
-      if(userConfig.getInt(username) == password){
-        loggedInUsername = username;
-        clientOut.println("ok");
-      }
-      else{
+        if(userConfig.getInt(username) == password){
+          loggedInUsername = username;
+          clientOut.println("ok");
+        } else{
+          clientOut.println("error wrong credentials");
+        }
+      }catch(MissingResourceException e){
         clientOut.println("error wrong credentials");
       }
     }else {
@@ -215,6 +217,7 @@ public class DMAPConnectionHandler implements Runnable{
     // Implement logout logic
     // You can clear the current user's context and allow them to log in again
     loggedInUsername = null;
+    clientOut.println("ok bye");
   }
 
   private void handleQuit() {

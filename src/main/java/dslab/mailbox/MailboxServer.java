@@ -51,7 +51,7 @@ public class MailboxServer implements IMailboxServer, Runnable {
 
         try {
             dmapServerSocket = new ServerSocket(dmapPort);
-            dmtpServerSocket = new ServerSocket(dmtpPort, 2);
+            dmtpServerSocket = new ServerSocket(dmtpPort);
 
             executorService = Executors.newCachedThreadPool();
         } catch (IOException e) {
