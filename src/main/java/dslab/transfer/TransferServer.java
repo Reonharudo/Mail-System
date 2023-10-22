@@ -20,7 +20,7 @@ import dslab.ComponentFactory;
 import dslab.util.Config;
 
 public class TransferServer implements ITransferServer, Runnable {
-
+    private volatile boolean isShuttingDown = false;
     private final String componentId;
     private final Config config;
     private final InputStream in;
@@ -47,14 +47,19 @@ public class TransferServer implements ITransferServer, Runnable {
         }
     }
 
-    @Override
-    public void run() {
+    private void listenForShellCommands(){
+        BufferedReader consoleReader = new BufferedReader(new InputStreamReader(in));
         try {
-            while (true) {
-                Socket clientSocket = serverSocket.accept();
-                executorService.execute(
-                    new DMTPConnectionHandler(clientSocket)
-                );
+            //when while loop is exited, the JVM will automatically close the thread from where it runs
+            while (!isShuttingDown) {
+                String input = consoleReader.readLine();
+                switch(input){
+                    case "shutdown":
+                        shutdown();
+                        break;
+                    default:
+                        out.println("error unknown command");
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -62,7 +67,27 @@ public class TransferServer implements ITransferServer, Runnable {
     }
 
     @Override
+    public void run() {
+        Thread shellCommandListener = new Thread(this::listenForShellCommands);
+        shellCommandListener.start();
+
+        try {
+            while (!isShuttingDown) {
+                Socket clientSocket = serverSocket.accept();
+                executorService.execute(
+                    new DMTPConnectionHandler(clientSocket)
+                );
+            }
+        } catch (IOException e) {
+            if (!isShuttingDown) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
     public void shutdown() {
+        isShuttingDown = true;
         try {
             if (serverSocket != null) {
                 serverSocket.close();
@@ -70,6 +95,8 @@ public class TransferServer implements ITransferServer, Runnable {
         } catch (IOException e) {
             e.printStackTrace();
         }
+
+        executorService.shutdownNow();
     }
 
     public static void main(String[] args) throws Exception {

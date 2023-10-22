@@ -9,7 +9,6 @@ import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
-import dslab.protocollhandler.DMAPConnectionHandler;
 import dslab.util.Config;
 import dslab.util.Email;
 

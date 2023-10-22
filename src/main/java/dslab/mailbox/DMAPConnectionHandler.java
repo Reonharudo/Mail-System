@@ -1,4 +1,4 @@
-package dslab.protocollhandler;
+package dslab.mailbox;
 
 import dslab.ComponentFactory;
 import dslab.mailbox.IMailboxServer;
@@ -63,7 +63,6 @@ public class DMAPConnectionHandler implements Runnable{
       case "login":
         handleLogin(params);
         break;
-
       case "list":
         handleList();
         break;

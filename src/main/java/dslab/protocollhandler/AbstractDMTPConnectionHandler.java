@@ -81,11 +81,11 @@ public abstract class AbstractDMTPConnectionHandler implements Runnable{
           } else {
             if (sender == null) {
               clientOut.println("error no sender");
-            }else if(subject == null){
+            } else if (subject == null) {
               clientOut.println("error no subject");
-            }else if(data == null){
+            } else if (data == null) {
               clientOut.println("error no data");
-            }else{
+            } else {
               clientOut.println("error could not send");
             }
           }
@@ -98,7 +98,12 @@ public abstract class AbstractDMTPConnectionHandler implements Runnable{
           return;
       }
 
-      clientOut.println("ok");
+      //send response
+      if (command.equals("to")) {
+        clientOut.println("ok " + recipients.size());
+      } else {
+        clientOut.println("ok");
+      }
     }
 
     socket.close();
