@@ -8,13 +8,11 @@ import java.io.PrintStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 import dslab.ComponentFactory;
-import dslab.transfer.ITransferServer;
 import dslab.util.Config;
 import dslab.util.Email;
 
@@ -67,7 +65,7 @@ public class MailboxServer implements IMailboxServer, Runnable {
     }
 
     public synchronized void storeEmail(Email email){
-        System.out.println("storeEmail id="+storedEmails.size() + 1 + "#email="+email);
+        System.out.println("storeEmail id="+(storedEmails.size() + 1) + "#email="+email);
         storedEmails.put(storedEmails.size() + 1, email);
     }
 
