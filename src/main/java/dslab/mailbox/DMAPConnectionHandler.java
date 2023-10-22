@@ -42,6 +42,8 @@ public class DMAPConnectionHandler implements Runnable{
     } catch (IOException e) {
       if(e.getMessage().equals("Socket closed")){
         System.out.println("quit was invoked");
+      }else{
+        e.printStackTrace();
       }
     }
   }
