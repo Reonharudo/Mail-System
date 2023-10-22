@@ -14,7 +14,6 @@ public abstract class AbstractDMTPConnectionHandler implements Runnable{
   private final Socket socket;
   private final BufferedReader reader;
   protected final PrintStream clientOut;
-
   private final List<String> recipients = new ArrayList<>();
   private String sender = null;
   private String subject = null;
