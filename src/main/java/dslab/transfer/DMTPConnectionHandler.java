@@ -9,6 +9,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.Socket;
 import java.util.List;
 import java.util.MissingResourceException;
@@ -20,8 +23,12 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
   private final Config domainsConfig;
   private final ExecutorService executorService;
 
-  public DMTPConnectionHandler(Socket socket) throws IOException {
+  private final Config transferServerConfig;
+
+  public DMTPConnectionHandler(Socket socket, Config transferServerConfig) throws IOException {
     super(socket);
+
+    this.transferServerConfig = transferServerConfig;
     domainsConfig = new Config("domains");
     executorService = Executors.newCachedThreadPool();
   }
@@ -52,8 +59,17 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
             sendCommandWithResponseCheck(out, in, "subject " + subject);
             sendCommandWithResponseCheck(out, in, "data " + data);
             sendCommandWithResponseCheck(out, in, "send");
-            clientOut.println("ok"); // this line is only executed, when the previous commands were sent successfully, as otherwise SendMessageException would be thrown
+
+            //from here on 'send' command was a success
+            //because the previous commands were sent successfully, as otherwise SendMessageException would have been thrown
+            clientOut.println("ok");
+
+            //close socket connection to MailServer
             sendCommandWithResponseCheck(out, in, "quit");
+
+            // Send usage statistics to the monitoring server
+            sendUsageStatistics(sender);
+            sendUsageStatistics(lookupData.ipAddress);
           } catch (SendMessageException e) {
             clientOut.println(e.getMessage());
             System.err.println("error during sending to MailServer: " + e);
@@ -69,6 +85,28 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
       }
     }catch(InferDomainLookupException e) {
       clientOut.println("error " + e);
+      System.err.println("error " + e);
+    }
+  }
+
+  /**
+   * sending usage statistics to the monitoring server via UDP
+   *
+   * @dataKey either IP_ADDRESS or EMAIL FROM
+   */
+  private void sendUsageStatistics(String dataKey) {
+    String monitoringServerAddress = transferServerConfig.getString("monitoring.host");
+    int monitoringServerPort = transferServerConfig.getInt("monitoring.port");
+
+    try (DatagramSocket socket = new DatagramSocket()) {
+      InetAddress serverAddress = InetAddress.getByName(monitoringServerAddress);
+
+      byte[] data = dataKey.getBytes();
+      DatagramPacket packet = new DatagramPacket(data, data.length, serverAddress, monitoringServerPort);
+      socket.send(packet);
+
+    } catch (IOException e) {
+      e.printStackTrace();
     }
   }
 

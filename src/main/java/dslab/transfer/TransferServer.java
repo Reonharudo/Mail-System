@@ -5,8 +5,13 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -20,10 +25,13 @@ public class TransferServer implements ITransferServer, Runnable {
     private ServerSocket serverSocket;
     private final ExecutorService executorService;
 
+    private final Config config;
+
     public TransferServer(String componentId, Config config, InputStream in, PrintStream out) {
         System.out.println("init "+componentId);
         this.in = in;
         this.out = out;
+        this.config = config;
 
         //create thread pool
         executorService = Executors.newCachedThreadPool();
@@ -65,7 +73,7 @@ public class TransferServer implements ITransferServer, Runnable {
             while (!isShuttingDown) {
                 Socket clientSocket = serverSocket.accept();
                 executorService.execute(
-                    new DMTPConnectionHandler(clientSocket)
+                    new DMTPConnectionHandler(clientSocket, config)
                 );
             }
         } catch (IOException e) {
@@ -74,6 +82,8 @@ public class TransferServer implements ITransferServer, Runnable {
             }
         }
     }
+
+
 
     @Override
     public void shutdown() {
