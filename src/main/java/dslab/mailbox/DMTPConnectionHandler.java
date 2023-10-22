@@ -13,8 +13,10 @@ import java.util.MissingResourceException;
 public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
   private final MailboxServer mailboxServer;
   private final Config userConfig;
-  public DMTPConnectionHandler(Socket socket, MailboxServer mailboxServer, Config userConfig) throws IOException {
+  private final Config mailserverConfig;
+  public DMTPConnectionHandler(Socket socket, MailboxServer mailboxServer, Config userConfig, Config mailserverConfig) throws IOException {
     super(socket);
+    this.mailserverConfig = mailserverConfig;
     this.mailboxServer = mailboxServer;
     this.userConfig = userConfig;
   }
@@ -42,7 +44,7 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
 
     for(String recipient : recipients){
       String hostname = getHostnameFromMailString(recipient);
-      if(hostname.equals(mailboxServer.getComponentId())){
+      if(hostname.equals(mailserverConfig.getString("domain"))){
         //This means, this recipient should be a user on one of our servers!
         try{
           //check if this user exists

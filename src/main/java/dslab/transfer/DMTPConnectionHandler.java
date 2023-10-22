@@ -11,6 +11,7 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.net.Socket;
 import java.util.List;
+import java.util.MissingResourceException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -35,33 +36,38 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
   private void sendToRecipient(String sender, String recipient, List<String> allRecipients, String subject, String data) {
     System.out.println("sendToRecipient "+sender+" "+recipient+" "+subject+" "+data);
 
-    DomainLookupData lookupData = inferDomainLookup(recipient);
-    System.out.println("Lookup Domain: "+lookupData.ipAddress+" ### "+lookupData.portNr);
+    try{
+      DomainLookupData lookupData = inferDomainLookup(recipient);
+      System.out.println("Lookup Domain: "+lookupData.ipAddress+" ### "+lookupData.portNr);
 
-    try (Socket socketToMailServer = new Socket(lookupData.ipAddress, lookupData.portNr);
-         BufferedReader in = new BufferedReader(new InputStreamReader(socketToMailServer.getInputStream()));
-         PrintWriter out = new PrintWriter(socketToMailServer.getOutputStream(), true)) {
+      try (Socket socketToMailServer = new Socket(lookupData.ipAddress, lookupData.portNr);
+           BufferedReader in = new BufferedReader(new InputStreamReader(socketToMailServer.getInputStream()));
+           PrintWriter out = new PrintWriter(socketToMailServer.getOutputStream(), true)) {
 
-      if (waitForOkResponse(in)) {
-        try {
-          sendCommandWithResponseCheck(out, in, "begin");
-          sendCommandWithResponseCheck(out, in, "from " + sender);
-          sendCommandWithResponseCheck(out, in, "to " + convertToDMTPConformFormat(allRecipients));
-          sendCommandWithResponseCheck(out, in, "subject " + subject);
-          sendCommandWithResponseCheck(out, in, "data " + data);
-          sendCommandWithResponseCheck(out, in, "send");
-          clientOut.println("ok"); // this line is only executed, when the previous commands were sent successfully, as otherwise SendMessageException would be thrown
-          sendCommandWithResponseCheck(out, in, "quit");
-        } catch (SendMessageException e) {
-          out.println("error during sending to MailServer: " + e);
+        if (waitForOkResponse(in)) {
+          try {
+            sendCommandWithResponseCheck(out, in, "begin");
+            sendCommandWithResponseCheck(out, in, "from " + sender);
+            sendCommandWithResponseCheck(out, in, "to " + convertToDMTPConformFormat(allRecipients));
+            sendCommandWithResponseCheck(out, in, "subject " + subject);
+            sendCommandWithResponseCheck(out, in, "data " + data);
+            sendCommandWithResponseCheck(out, in, "send");
+            clientOut.println("ok"); // this line is only executed, when the previous commands were sent successfully, as otherwise SendMessageException would be thrown
+            sendCommandWithResponseCheck(out, in, "quit");
+          } catch (SendMessageException e) {
+            out.println("error during sending to MailServer: " + e);
+          }
+          System.out.println("Message sent successfully.");
+        }else{
+          clientOut.println("error no successful communication to MailServer");
         }
-        System.out.println("Message sent successfully.");
-      }else{
-        clientOut.println("error no successful communication to MailServer");
+      } catch (IOException e) {
+        System.err.println("error could not establish connection to MailServer");
+        e.printStackTrace();
+        clientOut.println("error "+e);
       }
-    } catch (IOException e) {
-      System.err.println("error could not establish connection to MailServer");
-      e.printStackTrace();
+    }catch(InferDomainLookupException e) {
+      clientOut.println("error " + e);
     }
   }
 
@@ -85,16 +91,21 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
     return response != null && response.startsWith("ok");
   }
 
-  private DomainLookupData inferDomainLookup(String reciptient){
+  private DomainLookupData inferDomainLookup(String reciptient) throws InferDomainLookupException{
     String hostname = getHostnameFromMailString(reciptient);
 
-    String data = domainsConfig.getString(hostname);
-    String[] dataParts = data.split(":");
+    try{
+      String data = domainsConfig.getString(hostname);
+      String[] dataParts = data.split(":");
 
-    String ipAddress = dataParts[0];
-    int portNr = Integer.parseInt(dataParts[1]);
+      String ipAddress = dataParts[0];
+      int portNr = Integer.parseInt(dataParts[1]);
 
-    return new DomainLookupData(ipAddress, portNr);
+      return new DomainLookupData(ipAddress, portNr);
+
+    }catch(MissingResourceException e){
+      throw new InferDomainLookupException("Hostname"+hostname+" is not listed in domains config");
+    }
   }
 
   private String getHostnameFromMailString(String mailAddress){

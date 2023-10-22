@@ -142,7 +142,8 @@ public class MailboxServer implements IMailboxServer, Runnable {
                         new DMTPConnectionHandler(
                             dmtpSocket,
                             this,
-                            new Config(config.getString("users.config"))
+                            new Config(config.getString("users.config")),
+                            config
                         )
                     );
                 } catch (IOException e) {
