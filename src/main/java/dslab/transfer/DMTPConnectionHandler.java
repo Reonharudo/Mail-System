@@ -25,6 +25,7 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
     executorService = Executors.newCachedThreadPool();
   }
   protected void sendMessage(String sender, List<String> recipients, String subject, String data) {
+    System.out.println("sendMessage "+sender+" "+recipients+" "+subject+" "+data);
     for (String recipient : recipients) {
       // Offload the sending to a separate thread
       executorService.execute(() -> sendToRecipient(sender, recipient, subject, data));
@@ -32,9 +33,11 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
   }
 
   private void sendToRecipient(String sender, String recipient, String subject, String data) {
+    System.out.println("sendToRecipient "+sender+" "+recipient+" "+subject+" "+data);
+
     DomainLookupData lookupData = inferDomainLookup(recipient);
-    System.out.println(sender+" "+recipient+" "+subject+" "+data);
-    System.out.println(lookupData.ipAddress+" OOOOOOOOO"+lookupData.portNr);
+    System.out.println("Lookup Domain: "+lookupData.ipAddress+" ### "+lookupData.portNr);
+
     try (Socket socketToMailServer = new Socket(lookupData.ipAddress, lookupData.portNr);
          BufferedReader in = new BufferedReader(new InputStreamReader(socketToMailServer.getInputStream()));
          PrintWriter out = new PrintWriter(socketToMailServer.getOutputStream(), true)) {
@@ -49,14 +52,14 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
           sendCommandWithResponseCheck(out, in, "send");
           sendCommandWithResponseCheck(out, in, "quit");
         } catch (SendMessageException e) {
-          out.println("error send " + e);
+          out.println("error during sending to MailServer: " + e);
         }
         System.out.println("Message sent successfully.");
       }else{
-        clientOut.println("error no successful communication to mailserver");
+        clientOut.println("error no successful communication to MailServer");
       }
     } catch (IOException e) {
-      System.err.println("error no connection to mailserver");
+      System.err.println("error could not establish connection to MailServer");
       e.printStackTrace();
     }
   }
@@ -70,8 +73,8 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
 
     //check response and throw error in cas
     if(response == null){
-      throw new SendMessageException("error unknown send");
-    }else if(!response.equals("ok")){
+      throw new SendMessageException("error unknown error while sending to mailserver");
+    }else if(!response.startsWith("ok")){
       throw new SendMessageException(response);
     }
   }

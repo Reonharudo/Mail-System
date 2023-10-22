@@ -61,14 +61,17 @@ public class MailboxServer implements IMailboxServer, Runnable {
     }
 
     public synchronized void storeEmail(Email email){
+        System.out.println("storeEmail "+email);
         storedEmails.put(storedEmails.size() + 1, email);
     }
 
     public synchronized void removeEmail(int emailId){
+        System.out.println("removeEmail "+emailId);
         this.storedEmails.remove(emailId);
     }
 
     public synchronized Map<Integer, Email> getStoredEmails(){
+        System.out.println("getStoredEmails() "+this.storedEmails);
         return this.storedEmails;
     }
 
