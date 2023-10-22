@@ -55,7 +55,8 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
             clientOut.println("ok"); // this line is only executed, when the previous commands were sent successfully, as otherwise SendMessageException would be thrown
             sendCommandWithResponseCheck(out, in, "quit");
           } catch (SendMessageException e) {
-            out.println("error during sending to MailServer: " + e);
+            clientOut.println("error during sending to MailServer: " + e);
+            System.err.println("error during sending to MailServer: " + e);
           }
           System.out.println("Message sent successfully.");
         }else{
@@ -77,7 +78,7 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
 
     //wait for response
     String response = in.readLine();
-
+    System.out.println("response from sendCommandWithResponseCheck was="+response);
     //check response and throw error in cas
     if(response == null){
       throw new SendMessageException("error unknown error while sending to mailserver");

@@ -36,25 +36,35 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
       );
 
       clientOut.println("ok");
+    }else{
+      clientOut.println("error some error during result check");
     }
   }
 
   private boolean doRecipientsExistOrLogError(List<String> recipients){
     System.out.println("doRecipientsExistOrLogError()"+ recipients);
 
-    for(String recipient : recipients){
-      String hostname = getHostnameFromMailString(recipient);
-      if(hostname.equals(mailserverConfig.getString("domain"))){
-        //This means, this recipient should be a user on one of our servers!
-        try{
-          //check if this user exists
-          userConfig.getInt(recipient);
-        }catch(MissingResourceException e){
-          //When the recipient does not exist, log the error
-          clientOut.println("error recipient"+recipient+" does not exist");
+    for(String recipientMail : recipients){
+      String hostname = getHostnameFromMailString(recipientMail);
+      String name = getNameFromMailString(recipientMail);
+
+        if(hostname.equals(mailserverConfig.getString("domain"))){
+          //This means, this recipient should be a user on one of our servers!
+          try{
+            //check if this user exists
+            userConfig.getInt(name);
+          }catch (MissingResourceException e){
+            String errorMsg = "error recipient="+recipientMail+" does not exist";
+            System.out.println(errorMsg);
+            clientOut.println(errorMsg);
+            return false;
+          }
+        }else{
+          String errorMsg = "Hostname="+hostname+" is not equal to server hostname="+mailserverConfig.getString("domain");
+          System.out.println(errorMsg);
+          clientOut.println(errorMsg);
           return false;
         }
-      }
     }
     return true;
   }
@@ -66,6 +76,17 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
       String hostname =  mailAddress.substring(atIndex + 1);
       System.out.println("Hostname from mail is: "+hostname);
       return hostname;
+    }
+    throw new InferDomainLookupException("Invalid hostname. Does not contain '@' symbol"+mailAddress);
+  }
+
+  private String getNameFromMailString(String mailAddress){
+    int atIndex = mailAddress.indexOf("@");
+
+    if (atIndex != -1) {
+      String name =  mailAddress.substring(0, atIndex);
+      System.out.println("Name from mail is: "+name);
+      return name;
     }
     throw new InferDomainLookupException("Invalid hostname. Does not contain '@' symbol"+mailAddress);
   }
