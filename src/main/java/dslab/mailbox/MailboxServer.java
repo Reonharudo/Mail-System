@@ -61,7 +61,7 @@ public class MailboxServer implements IMailboxServer, Runnable {
     }
 
     public synchronized void storeEmail(Email email){
-        System.out.println("storeEmail "+email);
+        System.out.println("storeEmail id="+storedEmails.size() + 1 + "#email="+email);
         storedEmails.put(storedEmails.size() + 1, email);
     }
 

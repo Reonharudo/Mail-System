@@ -52,6 +52,11 @@ public class Email {
 
   @Override
   public String toString() {
-    return hashCode()+" "+sender+" "+subject;
+    return "Email{" +
+        "sender='" + sender + '\'' +
+        ", recipients=" + recipients +
+        ", subject='" + subject + '\'' +
+        ", messageBody='" + messageBody + '\'' +
+        '}';
   }
 }
