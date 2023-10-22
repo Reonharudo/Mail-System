@@ -28,11 +28,22 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
     System.out.println("sendMessage "+sender+" "+recipients+" "+subject+" "+data);
     for (String recipient : recipients) {
       // Offload the sending to a separate thread
-      executorService.execute(() -> sendToRecipient(sender, recipient, subject, data));
+      executorService.execute(() -> sendToRecipient(sender, recipient, recipients, subject, data));
     }
   }
 
-  private void sendToRecipient(String sender, String recipient, String subject, String data) {
+  private String convertToDMTPConformFormat(List<String> values){
+    String instruction = "";
+    for(int i = 0; i < values.size(); i++){
+      instruction += values.get(i);
+      if(i != values.size() -2 ){
+        instruction += ",";
+      }
+    }
+    return  instruction;
+  }
+
+  private void sendToRecipient(String sender, String recipient, List<String> allRecipients, String subject, String data) {
     System.out.println("sendToRecipient "+sender+" "+recipient+" "+subject+" "+data);
 
     DomainLookupData lookupData = inferDomainLookup(recipient);
@@ -46,7 +57,7 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
         try {
           sendCommandWithResponseCheck(out, in, "begin");
           sendCommandWithResponseCheck(out, in, "from " + sender);
-          sendCommandWithResponseCheck(out, in, "to " + recipient);
+          sendCommandWithResponseCheck(out, in, "to " + convertToDMTPConformFormat(allRecipients));
           sendCommandWithResponseCheck(out, in, "subject " + subject);
           sendCommandWithResponseCheck(out, in, "data " + data);
           sendCommandWithResponseCheck(out, in, "send");

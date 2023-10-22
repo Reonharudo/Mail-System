@@ -20,6 +20,7 @@ import dslab.util.Email;
 
 public class MailboxServer implements IMailboxServer, Runnable {
     private volatile boolean isShuttingDown = false;
+    private final String componentId;
     private final Config config;
     private final InputStream in;
     private final PrintStream out;
@@ -41,6 +42,7 @@ public class MailboxServer implements IMailboxServer, Runnable {
      */
     public MailboxServer(String componentId, Config config, InputStream in, PrintStream out) {
         System.out.println("init "+componentId);
+        this.componentId = componentId;
         this.config = config;
         this.in = in;
         this.out = out;
@@ -58,6 +60,10 @@ public class MailboxServer implements IMailboxServer, Runnable {
             e.printStackTrace();
             shutdown();
         }
+    }
+
+    public String getComponentId() {
+        return componentId;
     }
 
     public synchronized void storeEmail(Email email){
@@ -137,7 +143,8 @@ public class MailboxServer implements IMailboxServer, Runnable {
                     executorService.execute(
                         new DMTPConnectionHandler(
                             dmtpSocket,
-                            this
+                            this,
+                            new Config(config.getString("users.config"))
                         )
                     );
                 } catch (IOException e) {
