@@ -22,12 +22,14 @@ public class DMAPConnectionHandler implements Runnable{
   private String loggedInUsername;
   private final Config userConfig;
 
+  private final RecipientParser recipientParser;
   private final MailboxServer mailboxServer;
 
   public DMAPConnectionHandler(Socket socket, Config userConfig, MailboxServer mailboxServer) throws IOException {
     this.socket = socket;
     this.userConfig = userConfig;
     this.mailboxServer = mailboxServer;
+    this.recipientParser = new RecipientParser();
 
     reader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
     clientOut = new PrintStream(socket.getOutputStream());
@@ -81,6 +83,7 @@ public class DMAPConnectionHandler implements Runnable{
       case "show":
         if(checkParamsLengthOrOutError(params, 1)){
           if(checkIfLoggedInOrOutError()){
+            System.out.println("show"+params);
             handleShow(params.get(0));
           }
         }
@@ -171,7 +174,7 @@ public class DMAPConnectionHandler implements Runnable{
 
       if(isCurrentLoggedInUserPartOfRecipients(email.getRecipients())){
         System.out.println(email);
-        clientOut.println(email);
+        clientOut.println(email.getDMAPRepresentation(emailId));
       }
     }
   }
@@ -190,6 +193,7 @@ public class DMAPConnectionHandler implements Runnable{
     // Implement logic to show the message with the given ID
     // You should retrieve the message content and send it as a response
     try{
+      System.out.println("show messageId"+messageIdParam);
       int messageId = Integer.parseInt(messageIdParam);
       Email email = mailboxServer.getStoredEmails().get(messageId);
 
@@ -199,7 +203,9 @@ public class DMAPConnectionHandler implements Runnable{
           clientOut.println("from "+email.getSender());
           clientOut.println("to "+convertToDMAPConformFormat(email.getRecipients()));
           clientOut.println("subject "+email.getSubject());
-          clientOut.println("data "+email.getMessageBody());
+          clientOut.println(
+              "data "+email.getMessageBody() +
+                  " from "+recipientParser.getNameFromMailString(email.getSender()));
         }else{
           clientOut.println("error no access to this message");
         }
