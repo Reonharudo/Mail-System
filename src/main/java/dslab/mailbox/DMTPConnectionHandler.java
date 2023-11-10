@@ -1,12 +1,14 @@
 package dslab.mailbox;
 
 import dslab.exception.InferDomainLookupException;
+import dslab.exception.UserDoesNotExistException;
 import dslab.protocollhandler.AbstractDMTPConnectionHandler;
 import dslab.util.Config;
 import dslab.util.Email;
 
 import java.io.IOException;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.MissingResourceException;
 
@@ -41,6 +43,52 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
     }
   }
 
+  /**
+   * Filters out recipients that do not exist on the server and sends
+   * a response.
+   *
+   * Outputs an error if the user does not exist
+   */
+  @Override
+  protected void sendToRecipientsResponse(){
+    List<String> allRecipients = getRecipients();
+    List<String> toDeleteRecipients = new ArrayList<>();
+    int count = 0;
+
+    try{
+      for(String recipient : allRecipients){
+        String hostname = getHostnameFromMailString(recipient);
+        if(hostname.equals(mailserverConfig.getString("domain"))){
+          if(doesUserExist(getNameFromMailString(recipient))){
+            count++;
+          }
+        }else{
+          toDeleteRecipients.add(recipient);
+        }
+      }
+
+      //ignore foreign addresses
+      for(String toDeleteRecipient : toDeleteRecipients){
+        allRecipients.remove(toDeleteRecipient);
+      }
+
+      //send response
+      clientOut.println("ok "+count);
+    }catch(UserDoesNotExistException e){
+      clientOut.println("error "+e.getMessage());
+      allRecipients.clear(); //remove all elements
+    }
+  }
+
+  private boolean doesUserExist(String username) throws UserDoesNotExistException{
+    try{
+      userConfig.getInt(username);
+      return true;
+    }catch (MissingResourceException e){
+      throw new UserDoesNotExistException("user "+username+" does not exist");
+    }
+  }
+
   private boolean doRecipientsExistOrLogError(List<String> recipients){
     System.out.println("doRecipientsExistOrLogError()"+ recipients);
 
@@ -60,7 +108,7 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
             return false;
           }
         }else{
-          String errorMsg = "Hostname="+hostname+" is not equal to server hostname="+mailserverConfig.getString("domain");
+          String errorMsg = "error hostname="+hostname+" is not equal to server hostname="+mailserverConfig.getString("domain");
           System.out.println(errorMsg);
           clientOut.println(errorMsg);
           return false;
