@@ -93,7 +93,16 @@ public abstract class AbstractDMTPConnectionHandler implements Runnable{
           break;
         case "subject":
           if (parts.length > 1) {
-            subject = parts[1];
+            //There can be spaces in a subject
+            StringBuilder fullSubject = new StringBuilder();
+            for(int i = 0; i < parts.length; i++){
+              fullSubject.append(parts[i]);
+              //add space
+              if(! (i == parts.length - 1)){
+                fullSubject.append(" ");
+              }
+            }
+            subject = fullSubject.toString();
           }
           break;
         case "data":

@@ -69,6 +69,6 @@ public class Email {
   }
 
   public String getDMAPRepresentation(int emailId){
-    return emailId + " "+ formatRecipients() + " " + getSender() + " " + getMessageBody();
+    return emailId + " "+ formatRecipients() + " " + "from " + getSender() + " " + getMessageBody() + "subject "+getSubject();
   }
 }
