@@ -143,15 +143,15 @@ public class DMAPConnectionHandler implements Runnable{
     if(loggedInUsername == null){
       try{
         String username = params.get(0);
-        int password = Integer.parseInt(params.get(1));
+        String password = params.get(1);
 
-        if(userConfig.getInt(username) == password){
+        if(userConfig.getString(username).equals(password)){
           loggedInUsername = username;
           clientOut.println("ok");
         } else{
           clientOut.println("error wrong credentials");
         }
-      }catch(MissingResourceException e){
+      }catch(MissingResourceException | NumberFormatException e){
         clientOut.println("error wrong credentials");
       }
     }else {
@@ -246,6 +246,7 @@ public class DMAPConnectionHandler implements Runnable{
   private void handleQuit() {
     // Handle the "quit" command by closing the socket connection
     try {
+      clientOut.println("ok bye");
       socket.close();
     } catch (IOException e) {
       e.printStackTrace();
