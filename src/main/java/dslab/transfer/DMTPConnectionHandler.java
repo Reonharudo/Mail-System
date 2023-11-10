@@ -13,6 +13,7 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.MissingResourceException;
 import java.util.concurrent.ExecutorService;
@@ -36,11 +37,11 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
     System.out.println("sendMessage "+"sender="+sender+" "+"recipients+"+recipients+" "+"subjects"+subject+" "+"data"+data);
     for (String recipient : recipients) {
       // Offload the sending to a separate thread
-      executorService.execute(() -> sendToRecipient(sender, recipient, recipients, subject, data));
+      executorService.execute(() -> sendToRecipient(sender, recipient, recipients, subject, data, false));
     }
   }
 
-  private void sendToRecipient(String sender, String recipient, List<String> allRecipients, String subject, String data) {
+  private void sendToRecipient(String sender, String recipient, List<String> allRecipients, String subject, String data, boolean isRetry) {
     System.out.println("sendToRecipient "+"sender="+sender+" "+"recipient"+recipient+" "+"recipients+"+allRecipients+" "+"subjects"+subject+" "+"data"+data);
 
     clientOut.println("ok"); //THIS IS ONLY HERE FOR THE TESTCASE SEE (2) for correct Implementation
@@ -56,7 +57,7 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
           try {
             sendCommandWithResponseCheck(out, in, "begin");
             sendCommandWithResponseCheck(out, in, "from " + sender);
-            sendCommandWithResponseCheck(out, in, "to " + convertToDMTPConformFormat(allRecipients));
+            sendCommandWithResponseCheck(out, in, "to " + recipient);
             sendCommandWithResponseCheck(out, in, "subject " + subject);
             sendCommandWithResponseCheck(out, in, "data " + data);
             sendCommandWithResponseCheck(out, in, "send");
@@ -84,12 +85,18 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
         clientOut.println("error "+e);
       }
     }catch(InferDomainLookupException e) {
-      clientOut.println("error " + e);
-      System.err.println("error " + e);
+      if(!isRetry){
+        //Lookup failed, means we have to send an email to the sender
+        sendToRecipient("mailer@"+getIPAddress(), sender, new ArrayList<String>(), "Failed deliever", "failed to send message to"+recipient, true);
+        clientOut.println("error " + e);
+        System.err.println("error " + e);
+      }
     }
   }
-
-  public String getIPAddressAndPortNr(){
+  private String getIPAddress(){
+    return transferServerConfig.getString("registry.host");
+  }
+  private String getIPAddressAndPortNr(){
     return transferServerConfig.getString("registry.host")+":"+transferServerConfig.getString("tcp.port");
   }
 
