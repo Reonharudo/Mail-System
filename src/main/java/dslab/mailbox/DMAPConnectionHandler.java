@@ -170,8 +170,8 @@ public class DMAPConnectionHandler implements Runnable{
       System.out.println("Check "+email);
 
       if(isCurrentLoggedInUserPartOfRecipients(email.getRecipients())){
-        String emailRepresentation = emailId +" "+email.getSender()+" "+email.getSubject();
-        clientOut.println(emailRepresentation);
+        System.out.println(email);
+        clientOut.println(email);
       }
     }
   }
@@ -180,10 +180,9 @@ public class DMAPConnectionHandler implements Runnable{
     System.out.println("isCurrentLoggedInUserPartOfRecipients() "+loggedInUsername+"###"+recipients);
 
     for(String recipient : recipients){
-      if(recipient.contains(loggedInUsername)){
-        return true;
-      }
+      return recipient.contains(loggedInUsername);
     }
+    System.out.println("Is current user logged in false");
     return false;
   }
 

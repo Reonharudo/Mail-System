@@ -54,9 +54,17 @@ public class Email {
   public String toString() {
     return "Email{" +
         "sender='" + sender + '\'' +
-        ", recipients=" + recipients +
+        ", " +formatRecipients()+
         ", subject='" + subject + '\'' +
         ", messageBody='" + messageBody + '\'' +
         '}';
+  }
+
+  public String formatRecipients(){
+    StringBuilder representation = new StringBuilder();
+    for(String recipient : recipients){
+      representation.append("to ").append(recipient);
+    }
+    return representation.toString();
   }
 }
