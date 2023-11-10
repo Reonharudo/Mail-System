@@ -64,7 +64,6 @@ public class MailboxServerProtocolTest extends TestBase {
     }
 
     @Test(timeout = 15000)
-
     @TestPoints(0.5)
     public void mbx_02_dmtp_ignoresForeignAddresses() throws Exception {
         try (JunitSocketClient client = new JunitSocketClient(dmtpServerPort)) {

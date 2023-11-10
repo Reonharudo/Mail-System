@@ -19,6 +19,10 @@ public abstract class AbstractDMTPConnectionHandler implements Runnable{
   private String subject = null;
   private String data = null;
 
+  protected List<String> getRecipients() {
+    return recipients;
+  }
+
   public AbstractDMTPConnectionHandler(Socket socket) throws IOException {
     this.socket = socket;
 
@@ -54,6 +58,13 @@ public abstract class AbstractDMTPConnectionHandler implements Runnable{
       }
     }
     return instruction.toString();
+  }
+
+  /**
+   * Sends a response for the 'to' DMTP instruction.
+   */
+  protected void sendToRecipientsResponse(){
+    clientOut.println("ok " + recipients.size());
   }
 
   public void handleDMTPInteractions() throws IOException{
@@ -116,7 +127,7 @@ public abstract class AbstractDMTPConnectionHandler implements Runnable{
 
       //send response
       if (command.equals("to")) {
-        clientOut.println("ok " + recipients.size());
+        sendToRecipientsResponse();
       } else if(command.equals("send")){
         //nothing to do here, because the response from that command should come from sendMessage()
       }else {

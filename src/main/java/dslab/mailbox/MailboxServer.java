@@ -98,7 +98,8 @@ public class MailboxServer implements IMailboxServer, Runnable {
         return new Thread(() -> {
             //instead of while(true) to let the JVM close it gracefully
             while (!isShuttingDown) {
-                try(Socket dmapSocket = dmapServerSocket.accept()) {
+                try {
+                    Socket dmapSocket = dmapServerSocket.accept();
                     executorService.execute(
                         new DMAPConnectionHandler(
                             dmapSocket,
