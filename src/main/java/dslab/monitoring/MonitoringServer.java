@@ -6,7 +6,6 @@ import dslab.util.Config;
 import java.io.*;
 import java.net.DatagramPacket;
 import java.net.DatagramSocket;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -17,8 +16,6 @@ public class MonitoringServer implements IMonitoringServer, Runnable {
     private boolean isRunning = true;
     private final PrintStream out;
     private final InputStream in;
-
-    private Thread shellListenerThread;
 
     /**
      * Creates a new server instance.
@@ -53,6 +50,7 @@ public class MonitoringServer implements IMonitoringServer, Runnable {
 
                 // Process incoming UDP packets and update statistics
                 String message = new String(packet.getData(), 0, packet.getLength());
+                System.out.println("Message received "+message);
                 updateStatistics(message);
 
             } catch (IOException e) {
@@ -66,7 +64,6 @@ public class MonitoringServer implements IMonitoringServer, Runnable {
         try {
             //when while loop is exited, the JVM will automatically close the thread from where it runs
             while (isRunning) {
-                out.println("Enter a command (addresses, servers, or shutdown):");
                 String command = consoleReader.readLine().trim();
                 switch (command) {
                     case "addresses":
@@ -90,7 +87,6 @@ public class MonitoringServer implements IMonitoringServer, Runnable {
 
     @Override
     public void addresses() {
-        out.println("Usage statistics for email addresses:");
         for (Map.Entry<String, Integer> entry : userMessageCount.entrySet()) {
             out.println(entry.getKey() + " " + entry.getValue());
         }
@@ -98,7 +94,6 @@ public class MonitoringServer implements IMonitoringServer, Runnable {
 
     @Override
     public void servers() {
-        out.println("Usage statistics for servers:");
         for (Map.Entry<String, Integer> entry : serverMessageCount.entrySet()) {
             out.println(entry.getKey() + " " + entry.getValue());
         }
@@ -107,8 +102,15 @@ public class MonitoringServer implements IMonitoringServer, Runnable {
     @Override
     public void shutdown() {
         isRunning = false;
-        if(datagramSocket != null && !datagramSocket.isClosed()){
-            datagramSocket.close();
+        try{
+            this.in.close();
+            this.out.close();
+
+            if(datagramSocket != null && !datagramSocket.isClosed()){
+                datagramSocket.close();
+            }
+        }catch (IOException e) {
+            e.printStackTrace();
         }
     }
 
@@ -120,13 +122,15 @@ public class MonitoringServer implements IMonitoringServer, Runnable {
     /**
      * Updates 'amount' associated with given key.
      *
-     * @param key either in the form of '{mail}' or 'ip_address'
+     * @param key precond: must be in the format of '{ip_address} {sender_mail_address}'
      */
     private synchronized void updateStatistics(String key) {
-        if (key.contains("@")) {
-            userMessageCount.put(key, userMessageCount.getOrDefault(key, 0) + 1);
-        } else {
-            serverMessageCount.put(key, serverMessageCount.getOrDefault(key, 0) + 1);
-        }
+        String[] partsKey = key.split(" ");
+        String ipAddressKey = partsKey[0];
+        String senderMailAddressKey = partsKey[1];
+
+
+        serverMessageCount.put(ipAddressKey, serverMessageCount.getOrDefault(ipAddressKey, 0) + 1);
+        userMessageCount.put(senderMailAddressKey, userMessageCount.getOrDefault(senderMailAddressKey, 0) + 1);
     }
 }

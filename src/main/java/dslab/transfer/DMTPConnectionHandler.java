@@ -33,7 +33,7 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
     executorService = Executors.newCachedThreadPool();
   }
   protected void sendMessage(String sender, List<String> recipients, String subject, String data) {
-    System.out.println("sendMessage "+sender+" "+recipients+" "+subject+" "+data);
+    System.out.println("sendMessage "+"sender="+sender+" "+"recipients+"+recipients+" "+"subjects"+subject+" "+"data"+data);
     for (String recipient : recipients) {
       // Offload the sending to a separate thread
       executorService.execute(() -> sendToRecipient(sender, recipient, recipients, subject, data));
@@ -41,7 +41,8 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
   }
 
   private void sendToRecipient(String sender, String recipient, List<String> allRecipients, String subject, String data) {
-    System.out.println("sendToRecipient "+sender+" "+recipient+" "+subject+" "+data);
+    System.out.println("sendToRecipient "+"sender="+sender+" "+"recipient"+recipient+" "+"recipients+"+allRecipients+" "+"subjects"+subject+" "+"data"+data);
+
     clientOut.println("ok"); //THIS IS ONLY HERE FOR THE TESTCASE SEE (2) for correct Implementation
     try{
       DomainLookupData lookupData = inferDomainLookup(recipient);
@@ -64,12 +65,11 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
             //because the previous commands were sent successfully, as otherwise SendMessageException would have been thrown
             //clientOut.println("ok"); (2) DELETED BECAUSE TESTCASE WANT TO HAVE A NOT SO SMART TRANSFERSERVER
 
+            // Send usage statistics to the monitoring server
+            sendUsageStatistics(getIPAddressAndPortNr() + " "+ sender);
+
             //close socket connection to MailServer
             sendCommandWithResponseCheck(out, in, "quit");
-
-            // Send usage statistics to the monitoring server
-            sendUsageStatistics(sender);
-            sendUsageStatistics(lookupData.ipAddress);
           } catch (SendMessageException e) {
             clientOut.println(e.getMessage());
             System.err.println("error during sending to MailServer: " + e);
@@ -87,6 +87,10 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
       clientOut.println("error " + e);
       System.err.println("error " + e);
     }
+  }
+
+  public String getIPAddressAndPortNr(){
+    return transferServerConfig.getString("registry.host")+":"+transferServerConfig.getString("tcp.port");
   }
 
   /**
@@ -131,6 +135,7 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
   }
 
   private DomainLookupData inferDomainLookup(String reciptient) throws InferDomainLookupException{
+    System.out.println("infer domain lookup "+ reciptient);
     String hostname = getHostnameFromMailString(reciptient);
 
     try{
@@ -139,6 +144,7 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
 
       String ipAddress = dataParts[0];
       int portNr = Integer.parseInt(dataParts[1]);
+      System.out.println("infer domain lookup "+ ipAddress + " "+portNr+ " "+reciptient);
 
       return new DomainLookupData(ipAddress, portNr);
 
