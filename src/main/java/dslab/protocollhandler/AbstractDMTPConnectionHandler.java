@@ -108,6 +108,7 @@ public abstract class AbstractDMTPConnectionHandler implements Runnable{
         case "quit":
           clientOut.println("ok bye");
           socket.close();
+          break;
         default:
           clientOut.println("error protocol error");
           socket.close();

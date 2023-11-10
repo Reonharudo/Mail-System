@@ -19,9 +19,9 @@
 | scen_04_transferServerSendsMonitoringData                                        | 2.0             | 0.0             |
 | tfs_00_runAndShutdownTransferServer_createsAndStopsTcpSocketCorrectly            | 0.5             | 0.0             |
 | tfs_01_dmtp_simple                                                               | 1.5             | 0.0             |
-| tfs_02_sendWithoutData_returnsErrorOnSend                                        | 0.5             | 0.5             |
-| tfs_03_sendWithoutRecipient_returnsErrorOnSend                                   | 0.5             | 0.5             |
+| tfs_02_sendWithoutData_returnsErrorOnSend                                        | 0.5             | 0.0             |
+| tfs_03_sendWithoutRecipient_returnsErrorOnSend                                   | 0.5             | 0.0             |
 
 Summary:
 Total points possible: 18,00
-Total points earned: 1,00
+Total points earned: 0,00

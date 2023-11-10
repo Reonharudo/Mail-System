@@ -58,3 +58,4 @@ gradle-app.setting
 .classpath
 bin/test/dslab/NullOutputStream.class
 *.class
+test_report.txt

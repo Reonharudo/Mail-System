@@ -50,8 +50,8 @@ public class MailboxServer implements IMailboxServer, Runnable {
         int dmtpPort = config.getInt("dmtp.tcp.port");
 
         try {
-            dmapServerSocket = new ServerSocket(dmapPort);
             dmtpServerSocket = new ServerSocket(dmtpPort);
+            dmapServerSocket = new ServerSocket(dmapPort);
 
             executorService = Executors.newCachedThreadPool();
         } catch (IOException e) {
@@ -83,23 +83,22 @@ public class MailboxServer implements IMailboxServer, Runnable {
     public void run() {
         //Create Thread to listen for ShellCommands
         Thread shellCommandListener = new Thread(this::listenForShellCommands);
-        shellCommandListener.start();
+        executorService.execute(shellCommandListener);
 
         //Create separate Threads for DMTP and DMAP
         Thread acceptDMTPSocketThread = generateDMTPSocketListener();
         Thread acceptDMAPSocketThread = generateDMAPSocketListener();
 
         //Start accept() for DMTP and DMAP
-        acceptDMTPSocketThread.start();
-        acceptDMAPSocketThread.start();
+        executorService.execute(acceptDMTPSocketThread);
+        executorService.execute(acceptDMAPSocketThread);
     }
 
     public Thread generateDMAPSocketListener(){
         return new Thread(() -> {
             //instead of while(true) to let the JVM close it gracefully
             while (!isShuttingDown) {
-                try {
-                    Socket dmapSocket = dmapServerSocket.accept();
+                try(Socket dmapSocket = dmapServerSocket.accept()) {
                     executorService.execute(
                         new DMAPConnectionHandler(
                             dmapSocket,
@@ -113,9 +112,9 @@ public class MailboxServer implements IMailboxServer, Runnable {
             }
         });
     }
+
     private void listenForShellCommands(){
-        BufferedReader consoleReader = new BufferedReader(new InputStreamReader(in));
-        try {
+        try(BufferedReader consoleReader = new BufferedReader(new InputStreamReader(in))) {
             //when while loop is exited, the JVM will automatically close the thread from where it runs
             while (!isShuttingDown) {
                 String input = consoleReader.readLine();
@@ -160,9 +159,11 @@ public class MailboxServer implements IMailboxServer, Runnable {
             if (dmtpServerSocket != null && !dmtpServerSocket.isClosed()) {
                 dmtpServerSocket.close();
             }
-            if(dmapServerSocket != null && dmapServerSocket.isClosed()){
+            if(dmapServerSocket != null && !dmapServerSocket.isClosed()){
                 dmapServerSocket.close();
             }
+            this.in.close();
+            this.out.close();
         } catch (IOException e) {
             e.printStackTrace();
         }

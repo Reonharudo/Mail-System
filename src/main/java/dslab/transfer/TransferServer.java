@@ -5,13 +5,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.PrintStream;
-import java.net.DatagramPacket;
-import java.net.DatagramSocket;
-import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
-import java.util.ArrayList;
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -24,8 +19,8 @@ public class TransferServer implements ITransferServer, Runnable {
     private final PrintStream out;
     private ServerSocket serverSocket;
     private final ExecutorService executorService;
-
     private final Config config;
+    private Thread threadShellCommandListener;
 
     public TransferServer(String componentId, Config config, InputStream in, PrintStream out) {
         System.out.println("init "+componentId);
@@ -46,8 +41,7 @@ public class TransferServer implements ITransferServer, Runnable {
     }
 
     private void listenForShellCommands(){
-        BufferedReader consoleReader = new BufferedReader(new InputStreamReader(in));
-        try {
+        try(BufferedReader consoleReader = new BufferedReader(new InputStreamReader(in))) {
             //when while loop is exited, the JVM will automatically close the thread from where it runs
             while (!isShuttingDown) {
                 String input = consoleReader.readLine();
@@ -66,8 +60,8 @@ public class TransferServer implements ITransferServer, Runnable {
 
     @Override
     public void run() {
-        Thread shellCommandListener = new Thread(this::listenForShellCommands);
-        shellCommandListener.start();
+        threadShellCommandListener = new Thread(this::listenForShellCommands);
+        threadShellCommandListener.start();
 
         try {
             while (!isShuttingDown) {
@@ -83,8 +77,6 @@ public class TransferServer implements ITransferServer, Runnable {
         }
     }
 
-
-
     @Override
     public void shutdown() {
         isShuttingDown = true;
@@ -92,6 +84,9 @@ public class TransferServer implements ITransferServer, Runnable {
             if (serverSocket != null && !serverSocket.isClosed()) {
                 serverSocket.close();
             }
+            this.in.close();
+            this.out.close();
+            threadShellCommandListener.interrupt();
         } catch (IOException e) {
             e.printStackTrace();
         }
