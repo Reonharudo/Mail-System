@@ -45,7 +45,7 @@ public class DMAPConnectionHandler implements Runnable{
       if(e.getMessage().equals("Socket closed")){
         System.out.println("quit was invoked");
       }else{
-        e.printStackTrace();
+        System.err.println("Error during establishing connection"+e.getMessage());
       }
     }
   }
@@ -254,7 +254,7 @@ public class DMAPConnectionHandler implements Runnable{
       clientOut.println("ok bye");
       socket.close();
     } catch (IOException e) {
-      e.printStackTrace();
+      System.err.println("Error during quit command"+e.getMessage());
     }
   }
 

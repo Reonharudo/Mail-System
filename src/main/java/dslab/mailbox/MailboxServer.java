@@ -46,8 +46,8 @@ public class MailboxServer implements IMailboxServer, Runnable {
         this.out = out;
 
         // Initialize the server socket and executor service here
-        int dmapPort = config.getInt("dmap.tcp.port");
-        int dmtpPort = config.getInt("dmtp.tcp.port");
+        final int dmapPort = config.getInt("dmap.tcp.port");
+        final int dmtpPort = config.getInt("dmtp.tcp.port");
 
         try {
             dmtpServerSocket = new ServerSocket(dmtpPort);
@@ -55,7 +55,7 @@ public class MailboxServer implements IMailboxServer, Runnable {
 
             executorService = Executors.newCachedThreadPool();
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Error were catched during shutdown. Err:"+e.getMessage());
             shutdown();
         }
     }
@@ -108,7 +108,7 @@ public class MailboxServer implements IMailboxServer, Runnable {
                         )
                     );
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    System.err.println("Error creating client socket for dmap:"+e.getMessage());
                 }
             }
         });
@@ -128,7 +128,7 @@ public class MailboxServer implements IMailboxServer, Runnable {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Error during listening for shell commands:"+e.getMessage());
         }
     }
 
@@ -147,7 +147,7 @@ public class MailboxServer implements IMailboxServer, Runnable {
                         )
                     );
                 } catch (IOException e) {
-                    e.printStackTrace();
+                    System.err.println("Error during listening for dtmp commands:"+e.getMessage());
                 }
             }
         });
@@ -166,7 +166,7 @@ public class MailboxServer implements IMailboxServer, Runnable {
             this.in.close();
             this.out.close();
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Error during listening shutdown command:"+e.getMessage());
         }
 
         executorService.shutdownNow();

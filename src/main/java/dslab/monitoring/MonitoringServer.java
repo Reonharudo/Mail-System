@@ -110,7 +110,7 @@ public class MonitoringServer implements IMonitoringServer, Runnable {
                 datagramSocket.close();
             }
         }catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Error were catched during shutdown. Err:"+e.getMessage());
         }
     }
 

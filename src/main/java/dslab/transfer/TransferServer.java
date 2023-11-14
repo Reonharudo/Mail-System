@@ -36,7 +36,7 @@ public class TransferServer implements ITransferServer, Runnable {
         try{
             serverSocket = new ServerSocket(portNr);
         }  catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("ServerSocket could not be established. Err:"+e.getMessage());
         }
     }
 
@@ -54,7 +54,7 @@ public class TransferServer implements ITransferServer, Runnable {
                 }
             }
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Failed listening to shell commands:"+e.getMessage());
         }
     }
 
@@ -72,8 +72,8 @@ public class TransferServer implements ITransferServer, Runnable {
             }
         } catch (IOException e) {
             if (!isShuttingDown) {
-                e.printStackTrace();
-            }
+                System.err.println("Failed establishing client socket"+e.getMessage());
+        }
         }
     }
 
@@ -88,7 +88,7 @@ public class TransferServer implements ITransferServer, Runnable {
             this.out.close();
             threadShellCommandListener.interrupt();
         } catch (IOException e) {
-            e.printStackTrace();
+            System.err.println("Error were catched during shutdown. Err:"+e.getMessage());
         }
 
         executorService.shutdownNow();

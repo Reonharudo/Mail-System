@@ -80,16 +80,15 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
           clientOut.println("error no successful communication to MailServer");
         }
       } catch (IOException e) {
-        System.err.println("error could not establish connection to MailServer");
-        e.printStackTrace();
-        clientOut.println("error "+e);
+        System.err.println("error could not establish connection to MailServer"+e.getMessage());
+        clientOut.println("error could not establish connection to MailServer");
       }
     }catch(InferDomainLookupException e) {
       if(!isRetry){
         //Lookup failed, means we have to send an email to the sender
         sendToRecipient("mailer@"+getIPAddress(), sender, new ArrayList<String>(), "Failed deliever", "failed to send message to"+recipient, true);
-        clientOut.println("error " + e);
-        System.err.println("error " + e);
+        clientOut.println("error lookup failed with recipient="+recipient);
+        System.err.println("error lookup failed" + e);
       }
     }
   }
@@ -117,7 +116,7 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
       socket.send(packet);
 
     } catch (IOException e) {
-      e.printStackTrace();
+      System.err.println("Error during sending of usage statistics. Err:"+e.getMessage());
     }
   }
 
@@ -169,7 +168,7 @@ public class DMTPConnectionHandler extends AbstractDMTPConnectionHandler {
     throw new InferDomainLookupException("Invalid hostname. Does not contain '@' symbol"+mailAddress);
   }
 
-  private class DomainLookupData{
+  private static class DomainLookupData{
     private final String ipAddress;
     private final int portNr;
 
